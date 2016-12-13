@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">             
+    <!-- 按下状态 -->      
+    <item
+        android:state_selected="true"  
+        android:drawable="@drawable/btn_exhibit_detail_mediaplayer_play" 
+        />  
+    <!-- 普通无焦点状态 -->      
+    <item
+        android:state_selected="false"      
+        android:drawable="@drawable/btn_exhibit_detail_mediaplayer_pause" 
+        />  
+</selector> 
