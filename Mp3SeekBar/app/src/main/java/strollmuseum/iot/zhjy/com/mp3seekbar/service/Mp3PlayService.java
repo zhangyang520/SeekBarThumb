@@ -287,5 +287,10 @@ public class Mp3PlayService extends IntentService {
         public void seekTo(int progress) throws RemoteException {
             mediaPlayer.seekTo(progress);
         }
+
+        @Override
+        public boolean hasStart() throws RemoteException {
+            return hasPlayed;
+        }
     }
 }
