@@ -29,6 +29,7 @@
             android:maxHeight="30dp"
             android:indeterminate="false"
             android:foregroundGravity="center"
+            android:splitTrack="true"
             android:id="@+id/seekBar"></SeekBar>
    <!-- </LinearLayout>
 -->
