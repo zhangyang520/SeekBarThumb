@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity{
     //数字标识
     public final static int MSG_DOING=1001;
     public final static int MSG_DONE=1002;
+    public final static int MSG_INIT=1003;
     //mp3文件的长度
     public static final String MP3_DURATION="MP3_DURATION";
     //mp3当前进度
@@ -51,12 +52,12 @@ public class MainActivity extends AppCompatActivity{
             //进行处理message
             switch (msg.what) {
                 case MSG_DOING:
-                    if(!iscanPlay){
+                    if(!iscanPlay && msg.getData().getInt(MP3_CURRATION)>currentProgress){
                         //不进行播放
                         currentProgress=msg.getData().getInt(MP3_CURRATION);
-                        System.out.println("MSG_DOING ...currentProgress:"+currentProgress);
-                        seekBar.setProgress(currentProgress);
+                        System.out.println("MSG_DOING ...currentProgress:" + currentProgress);
                         seekBar.setMax(msg.getData().getInt(MP3_DURATION));
+                        seekBar.setProgress(currentProgress);
                         seekBar.setSelected(iscanPlay);
                     }
                     break;
@@ -84,11 +85,23 @@ public class MainActivity extends AppCompatActivity{
         //对seekBar进行设置监听事件
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             long startTime;
-
+            boolean hasStartTouchFlag;
+            float startPercent,stopPercent;
+            final float DELEGATE_PERCENT=0.07F;
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                System.out.println("seekBar onProgressChanged ...progress:"+progress+"...fromUser:"+fromUser);
+
                 //seekBar事件改变过程中
+                if(!hasStartTouchFlag){
+                    //第一次
+                    hasStartTouchFlag=true;
+                    startPercent=(float)progress/(float)seekBar.getMax();
+                    System.out.println("seekBar onProgressChanged ...progress:"+progress+"...fromUser:"+fromUser+"...startPercent:"+startPercent);
+                }else{
+                    //其次的以后
+                    stopPercent=(float)progress/(float)seekBar.getMax();
+                    System.out.println("seekBar onProgressChanged ...progress:"+progress+"...fromUser:"+fromUser+"...stopPercent:"+stopPercent);
+                }
             }
 
             @Override
@@ -96,57 +109,104 @@ public class MainActivity extends AppCompatActivity{
                 //开始改变
                 System.out.println("seekBar onStartTrackingTouch ...:");
                 startTime=System.currentTimeMillis();
+                hasStartTouchFlag=false;
             }
 
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
+            public void onStopTrackingTouch(SeekBar seekBar){
                 System.out.println("seekBar onStopTrackingTouch ...time delagate:"+(System.currentTimeMillis()-startTime));
                 //停止改变
-                if (System.currentTimeMillis()-startTime<120) {
-                    //短时间进行按下,暂停...
-                    if(iscanPlay){
-                        //进行开始启动
-                        try {
-                            iscanPlay =false;
+                try {
+                    if (System.currentTimeMillis()-startTime<250) {
+
+                        boolean smallPercent=Math.abs(stopPercent-startPercent)<=DELEGATE_PERCENT;
+                        System.out.println("seekBar onStopTrackingTouch stopPercent-startPercent:"+(stopPercent-startPercent)+"..smallPercent:"+smallPercent);
+                        if(smallPercent){
+                            //如果是短距离的滑动
+
+                        }else{
+                            //如果是长距离的滑动
+                            if(mp3PlayService.hasStart()){
+                                currentProgress=seekBar.getProgress();
+                            }
+                        }
+                        //短时间进行按下,暂停...
+                        if(iscanPlay){
+                            //进行开始启动
+                            try {
+                                iscanPlay =false;
+                                seekBar.setProgress(currentProgress);
+                                seekBar.setSelected(iscanPlay);
+                                mp3PlayService.start();
+                                System.out.println("seekBar onStopTrackingTouch ...start play:");
+                            } catch (RemoteException e) {
+                                e.printStackTrace();
+                            }
+                        }else if(mp3PlayService.hasStart()){
+                            //短时间的暂停
+                            if(!smallPercent){
+                                //长时间的滑动
+                                try {
+                                    seekBar.setProgress(currentProgress);
+                                    mp3PlayService.seekTo(currentProgress);
+                                    seekBar.setSelected(iscanPlay);
+                                    System.out.println("seekBar onStopTrackingTouch ...go on:");
+                                } catch (RemoteException e) {
+                                    e.printStackTrace();
+                                }
+                            }else{
+                                try {
+                                    iscanPlay =true;
+                                    seekBar.setProgress(currentProgress);
+                                    mp3PlayService.seekTo(currentProgress);
+                                    seekBar.setSelected(iscanPlay);
+                                    mp3PlayService.pause();
+                                    System.out.println("seekBar onStopTrackingTouch ...pause:");
+                                } catch (RemoteException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }else{
+                            currentProgress=0;
                             seekBar.setProgress(currentProgress);
-                            seekBar.setSelected(iscanPlay);
-                            mp3PlayService.start();
-                        } catch (RemoteException e) {
-                            e.printStackTrace();
+                            seekBar.setSelected(true);
                         }
                     }else{
-                        //短时间的暂停
+                        //长时间拖动
                         try {
-                            mp3PlayService.pause();
-                            iscanPlay =true;
-                            seekBar.setProgress(currentProgress);
-                            mp3PlayService.seekTo(currentProgress);
-                            seekBar.setSelected(iscanPlay);
+                            if(mp3PlayService.hasStart()){
+                                if((float)currentProgress/(float)seekBar.getMax()>0.999){
+                                    //如果拖动的进度大于0.99
+                                    try {
+                                        iscanPlay =true;
+                                        seekBar.setProgress(0);
+                                        mp3PlayService.stop();
+                                        seekBar.setSelected(iscanPlay);
+                                    } catch (RemoteException e) {
+                                        e.printStackTrace();
+                                    }
+                                }else{
+                                    try {
+                                        currentProgress=seekBar.getProgress();
+                                        seekBar.setProgress(currentProgress);
+                                        mp3PlayService.seekTo(currentProgress);
+                                    } catch (RemoteException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }else{
+                                currentProgress=0;
+                                seekBar.setProgress(currentProgress);
+                                seekBar.setSelected(true);
+                            }
                         } catch (RemoteException e) {
                             e.printStackTrace();
                         }
+
                     }
-                }else{
-                    //长时间拖动
-                    if((float)currentProgress/(float)seekBar.getMax()>0.999){
-                        //如果拖动的进度大于0.99
-                        try {
-                            iscanPlay =true;
-                            seekBar.setProgress(0);
-                            mp3PlayService.stop();
-                            seekBar.setSelected(iscanPlay);
-                        } catch (RemoteException e) {
-                            e.printStackTrace();
-                        }
-                    }else{
-                        try {
-                            currentProgress=seekBar.getProgress();
-                            seekBar.setProgress(currentProgress);
-                            mp3PlayService.seekTo(currentProgress);
-                        } catch (RemoteException e) {
-                            e.printStackTrace();
-                        }
-                    }
+                    hasStartTouchFlag=false;
+                } catch (RemoteException e) {
+                    e.printStackTrace();
                 }
             }
         });

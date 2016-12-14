@@ -4,6 +4,7 @@ import android.app.IntentService;
 import android.content.Intent;
 import android.content.Context;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Message;
@@ -152,10 +153,8 @@ public class Mp3PlayService extends IntentService {
                 mediaPlayer.release();
                 mediaPlayer=null;
             }
-            mediaPlayer=new MediaPlayer();
-            System.out.println("service filePath:"+filePath);
-            mediaPlayer.setDataSource(filePath);
-            mediaPlayer.prepare();
+            mediaPlayer=MediaPlayer.create(getApplicationContext(), Uri.parse("file://" + filePath));
+            mediaPlayer.setLooping(false);
             //进行准备播放
             mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
@@ -189,6 +188,8 @@ public class Mp3PlayService extends IntentService {
                                             Message message=Message.obtain();
                                             message.what= MainActivity.MSG_DONE;
                                             messenger.send(message);
+                                            timer.cancel();
+                                            timer=null;
                                             System.out.println("messenger.send MSG_DONE...");
                                         } catch (RemoteException e) {
                                             e.printStackTrace();
@@ -200,7 +201,7 @@ public class Mp3PlayService extends IntentService {
                                             Message message=Message.obtain();
                                             message.what= MainActivity.MSG_DOING;
                                             Bundle bundle=new Bundle();
-                                            bundle.putInt(MainActivity.MP3_DURATION,mediaPlayer.getDuration());
+                                            bundle.putInt(MainActivity.MP3_DURATION, mediaPlayer.getDuration());
                                             bundle.putInt(MainActivity.MP3_CURRATION,mediaPlayer.getCurrentPosition());
                                             message.setData(bundle);
                                             messenger.send(message);
