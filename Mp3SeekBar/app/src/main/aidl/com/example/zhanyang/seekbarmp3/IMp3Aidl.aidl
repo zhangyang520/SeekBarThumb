@@ -20,4 +20,6 @@ interface IMp3Aidl {
     void pause();
     //进行拖拽到对应的进度
     void seekTo(in int progress);
+    //进行判断是否已经启动
+    boolean hasStart();
 }
