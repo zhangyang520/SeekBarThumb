@@ -181,7 +181,7 @@ public class Mp3PlayService extends IntentService {
 //                            System.out.println("timer.  isPaused..."+isPaused);
                             synchronized (Mp3PlayService.this) {
                                 if (!isPaused) {
-                                    if ((float)mediaPlayer.getCurrentPosition()/(float)mediaPlayer.getDuration()>=0.999){
+                                    if (mediaPlayer!=null && (float)mediaPlayer.getCurrentPosition()/(float)mediaPlayer.getDuration()>=0.999){
                                         //已经停止了
                                         try {
                                             hasPlayed=false;
@@ -195,7 +195,7 @@ public class Mp3PlayService extends IntentService {
                                             e.printStackTrace();
                                             System.out.println("messenger.send RemoteException...");
                                         }
-                                    }else{
+                                    }else if(mediaPlayer!=null){
                                         //正在进行中.....
                                         try {
                                             Message message=Message.obtain();
@@ -214,7 +214,7 @@ public class Mp3PlayService extends IntentService {
                                 }
                             }
                         }
-                    },0,200);
+                    },0,100);
                 }
             });
 
